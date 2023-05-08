@@ -187,7 +187,7 @@ class DDPMSampler(DiffusionSampler):
         # Do not add noise when $t = 1$ (final step sampling process).
         # Note that `step` is `0` when $t = 1$)
         if step == 0:
-            noise = 0
+            noise = torch.zeros(x.shape)
         # If same noise is used for all samples in the batch
         elif repeat_noise:
             noise = torch.randn((1, *x.shape[1:]))
@@ -197,7 +197,7 @@ class DDPMSampler(DiffusionSampler):
 
         # Multiply noise by the temperature
         noise = noise * temperature
-
+        # noise = noise.cuda()
         # Sample from,
         #
         # $$p_\theta(x_{t-1} | x_t) = \mathcal{N}\big(x_{t-1}; \mu_\theta(x_t, t), \tilde\beta_t \mathbf{I} \big)$$
