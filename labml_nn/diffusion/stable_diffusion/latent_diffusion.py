@@ -68,6 +68,7 @@ class LatentDiffusion(nn.Module):
                  clip_embedder: CLIPTextEmbedder,
                  latent_scaling_factor: float,
                  n_steps: int,
+                 step_size_eps: float,
                  linear_start: float,
                  linear_end: float,
                  ):
@@ -113,7 +114,7 @@ class LatentDiffusion(nn.Module):
         curr_t = end_time
         while curr_t > 0.00001:
             times.append(curr_t.item())
-            step_size = 0.1*(1 - math.exp(-2*curr_t))
+            step_size = step_size_eps*(1 - math.exp(-2*curr_t))
             curr_beta = 1 - math.exp(-2*step_size)
             betas.append(curr_beta)
             curr_t -= step_size
@@ -131,9 +132,9 @@ class LatentDiffusion(nn.Module):
         self.alpha_bar = nn.Parameter(alpha_bar.to(torch.float32), requires_grad=False)
         our_times = -0.5 * torch.log(alpha_bar)
         # print(self.times - self.our_times)
-        plt.plot(beta, label='our-betas')
-        plt.legend()
-        plt.savefig('outputs/plot.jpeg')
+        # plt.plot(beta, label='our-betas')
+        # plt.legend()
+        # plt.savefig('outputs/plot.jpeg')
 
         def find_in_list(l, v):
             for i in range(len(l)):
