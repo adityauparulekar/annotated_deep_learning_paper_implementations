@@ -126,6 +126,7 @@ class DDIMSampler(DiffusionSampler):
         bs = shape[0]
 
         # Get $x_{\tau_S}$
+        torch.manual_seed(100)
         x = x_last if x_last is not None else torch.randn(shape, device=device)
 
         # Time steps to sample at $\tau_{S - i'}, \tau_{S - i' - 1}, \dots, \tau_1$
