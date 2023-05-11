@@ -123,6 +123,7 @@ class DDPMSampler(DiffusionSampler):
         time_step_indices = self.time_step_indices[skip_steps:]
         time_steps = np.flip(self.time_steps)[skip_steps:]
         # Sampling loop
+        xs = [x]
         for step in monit.iterate('Sample', time_steps):
             # Time step $t$
             ti = x.new_full((bs,), time_step_indices[step], dtype=torch.long)
@@ -133,9 +134,9 @@ class DDPMSampler(DiffusionSampler):
                                             temperature=temperature,
                                             uncond_scale=uncond_scale,
                                             uncond_cond=uncond_cond)
-
+            xs.append(x)
         # Return $x_0$
-        return x
+        return xs
 
     @torch.no_grad()
     def p_sample(self, x: torch.Tensor, c: torch.Tensor, ti: torch.Tensor, tv: torch.Tensor, step: int,

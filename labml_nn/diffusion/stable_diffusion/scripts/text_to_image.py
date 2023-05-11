@@ -11,7 +11,7 @@ summary: >
 import argparse
 import os
 from pathlib import Path
-
+from PIL import Image, ImageDraw
 import torch
 
 from labml import lab, monit
@@ -95,10 +95,15 @@ class Txt2Img:
                                     uncond_scale=uncond_scale,
                                     uncond_cond=un_cond)
             # Decode the image from the [autoencoder](../model/autoencoder.html)
-            images = self.model.autoencoder_decode(x)
+            images = list(map(self.model.autoencoder_decode, x))
 
+        save_images(images[-1], dest_path, 'txt_')
         # Save images
-        save_images(images, dest_path, 'txt_')
+        ims = []
+        for i in range(len(images)):
+            save_images(images[i], dest_path, f'gif/txt_{i}')
+            ims.append(Image.open(f'outputs/gif/txt_{i}00000.jpeg'))
+        ims[0].save('outputs/txt.gif', save_all=True, append_images=ims[1:], optimize=False, duration=40, loop=0)
 
 
 def main():
