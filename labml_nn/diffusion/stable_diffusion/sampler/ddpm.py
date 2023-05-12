@@ -48,15 +48,16 @@ class DDPMSampler(DiffusionSampler):
 
     model: LatentDiffusion
 
-    def __init__(self, model: LatentDiffusion):
+    def __init__(self, model: LatentDiffusion, n_steps):
         """
         :param model: is the model to predict noise $\epsilon_\text{cond}(x_t, c)$
         """
         super().__init__(model)
 
         # Sampling steps $1, 2, \dots, T$
-        self.time_steps = np.asarray(list(range(self.n_steps)))
-
+        # self.time_steps = np.asarray(list(range(self.n_steps)))
+        c = self.n_steps // n_steps
+        self.time_steps = np.asarray(list(range(0, self.n_steps, c))) + 1
         with torch.no_grad():
             # $\bar\alpha_t$
             alpha_bar = self.model.alpha_bar
@@ -197,7 +198,7 @@ class DDPMSampler(DiffusionSampler):
 
         # Multiply noise by the temperature
         noise = noise * temperature
-        # noise = noise.cuda()
+        noise = noise.cuda()
         # Sample from,
         #
         # $$p_\theta(x_{t-1} | x_t) = \mathcal{N}\big(x_{t-1}; \mu_\theta(x_t, t), \tilde\beta_t \mathbf{I} \big)$$
