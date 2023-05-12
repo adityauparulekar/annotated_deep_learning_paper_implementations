@@ -139,8 +139,10 @@ class LatentDiffusion(nn.Module):
         def find_in_list(l, v):
             for i in range(len(l)):
                 if l[i] >= v:
-                    if abs(l[max(0, i-1)] - v) < abs(l[i] - v):
-                        return max(0, i-1)
+                    if i == 0:
+                        return 0
+                    if abs(l[i-1] - v) < abs(l[i] - v):
+                        return i-1
                     return i
             return len(l) - 1
         our_time_indices = []
