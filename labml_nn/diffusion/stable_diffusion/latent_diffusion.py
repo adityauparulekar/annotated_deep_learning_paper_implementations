@@ -22,7 +22,7 @@ We use same notations for $\alpha_t$, $\beta_t$ schedules, etc.
 """
 
 from typing import List
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import math
@@ -101,7 +101,7 @@ class LatentDiffusion(nn.Module):
         torch.set_printoptions(precision=10)
         # $\alpha_t = 1 - \beta_t$
         alpha = 1. - beta
-        plt.plot(beta, label='old-betas')
+        # plt.plot(beta, label='old-betas')
         # $\bar\alpha_t = \prod_{s=1}^t \alpha_s$
         alpha_bar = torch.cumprod(alpha, dim=0)
         their_times = -0.5*torch.log(alpha_bar)

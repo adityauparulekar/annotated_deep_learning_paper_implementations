@@ -8,6 +8,6 @@ for STEP in "${STEPS[@]}"
 do
     mkdir $STEP
     cd $STEP
-    python3 ../scripts/text_to_image.py --sampler ddpm --step_size_eps "$STEP" --prompt "an astronaut at an ice cream shop"
+    python3 ../scripts/text_to_image.py --sampler ddpm --step_size_eps "$STEP" --prompt "a saxophone player on a trampoline"
     cd ..
 done
