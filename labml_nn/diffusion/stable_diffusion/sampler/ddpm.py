@@ -48,15 +48,16 @@ class DDPMSampler(DiffusionSampler):
 
     model: LatentDiffusion
 
-    def __init__(self, model: LatentDiffusion):
+    def __init__(self, model: LatentDiffusion, n_steps):
         """
         :param model: is the model to predict noise $\epsilon_\text{cond}(x_t, c)$
         """
         super().__init__(model)
 
+        self.n_steps = n_steps
         # Sampling steps $1, 2, \dots, T$
-        self.time_steps = np.asarray(list(range(self.n_steps)))
-
+        self.time_steps = np.asarray(list(range(self.n_steps))) * (1000//n_steps)
+        print(self.time_steps)
         with torch.no_grad():
             # $\bar\alpha_t$
             alpha_bar = self.model.alpha_bar
@@ -157,7 +158,6 @@ class DDPMSampler(DiffusionSampler):
         e_t = self.get_eps(x, t, c,
                            uncond_scale=uncond_scale,
                            uncond_cond=uncond_cond)
-
         # Get batch size
         bs = x.shape[0]
 
@@ -187,14 +187,14 @@ class DDPMSampler(DiffusionSampler):
         # Do not add noise when $t = 1$ (final step sampling process).
         # Note that `step` is `0` when $t = 1$)
         if step == 0:
-            noise = 0
+            noise = torch.zeros(x.shape)
         # If same noise is used for all samples in the batch
         elif repeat_noise:
             noise = torch.randn((1, *x.shape[1:]))
         # Different noise for each sample
         else:
             noise = torch.randn(x.shape)
-
+        noise = noise.cuda()
         # Multiply noise by the temperature
         noise = noise * temperature
 

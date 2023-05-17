@@ -52,7 +52,7 @@ class Txt2Img:
                                        n_steps=n_steps,
                                        ddim_eta=ddim_eta)
         elif sampler_name == 'ddpm':
-            self.sampler = DDPMSampler(self.model)
+            self.sampler = DDPMSampler(self.model, n_steps)
 
     @torch.no_grad()
     def __call__(self, *,

@@ -93,7 +93,7 @@ class LatentDiffusion(nn.Module):
 
         # Number of steps $T$
         self.n_steps = n_steps
-
+        print("NDTEPS ", n_steps)
         # $\beta$ schedule
         beta = torch.linspace(linear_start ** 0.5, linear_end ** 0.5, n_steps, dtype=torch.float64) ** 2
         self.beta = nn.Parameter(beta.to(torch.float32), requires_grad=False)
