@@ -40,7 +40,7 @@ class Txt2Img:
         :param ddim_eta: is the [DDIM sampling](../sampler/ddim.html) $\eta$ constant
         """
         # Load [latent diffusion model](../latent_diffusion.html)
-        self.model = load_model(checkpoint_path)
+        self.model = load_model(checkpoint_path, n_steps)
         # Get device
         self.device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
         # Move the model to device
@@ -52,7 +52,7 @@ class Txt2Img:
                                        n_steps=n_steps,
                                        ddim_eta=ddim_eta)
         elif sampler_name == 'ddpm':
-            self.sampler = DDPMSampler(self.model, n_steps)
+            self.sampler = DDPMSampler(self.model)
 
     @torch.no_grad()
     def __call__(self, *,
