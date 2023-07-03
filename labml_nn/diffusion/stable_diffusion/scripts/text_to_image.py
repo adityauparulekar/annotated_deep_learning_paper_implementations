@@ -11,7 +11,7 @@ summary: >
 import argparse
 import os
 from pathlib import Path
-
+from PIL import Image, ImageDraw
 import torch
 
 from labml import lab, monit
@@ -32,6 +32,7 @@ class Txt2Img:
                  sampler_name: str,
                  n_steps: int = 50,
                  ddim_eta: float = 0.0,
+                 step_size_eps: float = 0.1,
                  ):
         """
         :param checkpoint_path: is the path of the checkpoint
@@ -40,7 +41,7 @@ class Txt2Img:
         :param ddim_eta: is the [DDIM sampling](../sampler/ddim.html) $\eta$ constant
         """
         # Load [latent diffusion model](../latent_diffusion.html)
-        self.model = load_model(checkpoint_path)
+        self.model = load_model(checkpoint_path, step_size_eps)
         # Get device
         self.device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
         # Move the model to device
@@ -52,7 +53,7 @@ class Txt2Img:
                                        n_steps=n_steps,
                                        ddim_eta=ddim_eta)
         elif sampler_name == 'ddpm':
-            self.sampler = DDPMSampler(self.model, n_steps=n_steps)
+            self.sampler = DDPMSampler(self.model)
 
     @torch.no_grad()
     def __call__(self, *,
@@ -95,10 +96,15 @@ class Txt2Img:
                                     uncond_scale=uncond_scale,
                                     uncond_cond=un_cond)
             # Decode the image from the [autoencoder](../model/autoencoder.html)
-            images = self.model.autoencoder_decode(x)
+            images = list(map(self.model.autoencoder_decode, x))
 
+        save_images(images[-1], dest_path, 'txt_')
         # Save images
-        save_images(images, dest_path, 'txt_')
+        # ims = []
+        # for i in range(len(images)):
+        #     save_images(images[i], dest_path, f'gif/txt_{i}')
+        #     ims.append(Image.open(f'outputs/gif/txt_{i}00000.jpeg'))
+        # ims[0].save('outputs/txt.gif', save_all=True, append_images=ims[1:], optimize=False, duration=40, loop=0)
 
 
 def main():
@@ -129,6 +135,8 @@ def main():
 
     parser.add_argument("--steps", type=int, default=50, help="number of sampling steps")
 
+    parser.add_argument("--step_size_eps", type=float, default=0.1, help="step size epsilon")
+
     parser.add_argument("--scale", type=float, default=7.5,
                         help="unconditional guidance scale: "
                              "eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))")
@@ -144,7 +152,8 @@ def main():
     #
     txt2img = Txt2Img(checkpoint_path=lab.get_data_path() / 'stable-diffusion' / 'sd-v1-4.ckpt',
                       sampler_name=opt.sampler_name,
-                      n_steps=opt.steps)
+                      n_steps=opt.steps,
+                      step_size_eps=opt.step_size_eps)
 
     with monit.section('Generate'):
         txt2img(dest_path='outputs',

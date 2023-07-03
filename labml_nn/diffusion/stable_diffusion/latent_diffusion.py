@@ -22,9 +22,10 @@ We use same notations for $\alpha_t$, $\beta_t$ schedules, etc.
 """
 
 from typing import List
-
+# import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+import math
 
 from labml_nn.diffusion.stable_diffusion.model.autoencoder import Autoencoder
 from labml_nn.diffusion.stable_diffusion.model.clip_embedder import CLIPTextEmbedder
@@ -67,6 +68,7 @@ class LatentDiffusion(nn.Module):
                  clip_embedder: CLIPTextEmbedder,
                  latent_scaling_factor: float,
                  n_steps: int,
+                 step_size_eps: float,
                  linear_start: float,
                  linear_end: float,
                  ):
@@ -95,19 +97,65 @@ class LatentDiffusion(nn.Module):
         self.n_steps = n_steps
 
         # $\beta$ schedule
-        beta = torch.linspace(linear_start ** 0.5, linear_end ** 0.5, n_steps, dtype=torch.float64) ** 2
-        self.beta = nn.Parameter(beta.to(torch.float32), requires_grad=False)
+        beta = torch.linspace(linear_start ** 0.5, linear_end ** 0.5, 1000, dtype=torch.float64) ** 2
+        torch.set_printoptions(precision=10)
         # $\alpha_t = 1 - \beta_t$
+        alpha = 1. - beta
+        # plt.plot(beta, label='old-betas')
+        # $\bar\alpha_t = \prod_{s=1}^t \alpha_s$
+        alpha_bar = torch.cumprod(alpha, dim=0)
+        their_times = -0.5*torch.log(alpha_bar)
+        end_time = their_times[-1]
+        # print("THEIR TIMES", self.their_times)
+        # print("TIME END ", end_time)
+        betas = []
+        step_size = 1
+        times = []
+        curr_t = end_time
+        while curr_t > 0.00001:
+            times.append(curr_t.item())
+            step_size = step_size_eps*(1 - math.exp(-2*curr_t))
+            curr_beta = 1 - math.exp(-2*step_size)
+            betas.append(curr_beta)
+            curr_t -= step_size
+        self.n_steps = len(betas)
+        self.times = torch.tensor(times[::-1])
+        # self.times = list(range(n_steps))
+        beta = torch.tensor(betas[::-1])
+        # print("our betas", beta, self.n_steps)
+        self.beta = nn.Parameter(beta.to(torch.float32), requires_grad=False)
+        # $\alpha_t = 1 - \beta_t
         alpha = 1. - beta
         # $\bar\alpha_t = \prod_{s=1}^t \alpha_s$
         alpha_bar = torch.cumprod(alpha, dim=0)
+        # print(alpha_bar[-1])
         self.alpha_bar = nn.Parameter(alpha_bar.to(torch.float32), requires_grad=False)
+        our_times = -0.5 * torch.log(alpha_bar)
+        # print(self.times - self.our_times)
+        # plt.plot(beta, label='our-betas')
+        # plt.legend()
+        # plt.savefig('outputs/plot.jpeg')
+
+        def find_in_list(l, v):
+            for i in range(len(l)):
+                if l[i] >= v:
+                    if i == 0:
+                        return 0
+                    if abs(l[i-1] - v) < abs(l[i] - v):
+                        return i-1
+                    return i
+            return len(l) - 1
+        our_time_indices = []
+        for t in our_times:
+            our_time_indices.append(find_in_list(their_times, t))
+        self.our_time_indices = torch.tensor(our_time_indices)
 
     @property
     def device(self):
         """
         ### Get model device
         """
+        # print("PARAMETERS", self.model.paramters())
         return next(iter(self.model.parameters())).device
 
     def get_text_conditioning(self, prompts: List[str]):

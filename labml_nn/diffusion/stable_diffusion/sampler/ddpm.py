@@ -48,16 +48,18 @@ class DDPMSampler(DiffusionSampler):
 
     model: LatentDiffusion
 
-    def __init__(self, model: LatentDiffusion, n_steps):
+    def __init__(self, model: LatentDiffusion):
         """
         :param model: is the model to predict noise $\epsilon_\text{cond}(x_t, c)$
         """
         super().__init__(model)
 
         # Sampling steps $1, 2, \dots, T$
-        # self.time_steps = np.asarray(list(range(self.n_steps)))
-        c = self.n_steps // n_steps
-        self.time_steps = np.asarray(list(range(0, self.n_steps, c))) + 1
+        self.time_step_indices = np.asarray(model.our_time_indices)
+        self.time_steps = np.asarray(list(range(model.n_steps)))
+        print("TIME STEP INDICES", self.time_step_indices, len(self.time_step_indices))
+        print("TIME STEPS", self.time_steps, len(self.time_steps))
+        # self.rescale = model.rescale
         with torch.no_grad():
             # $\bar\alpha_t$
             alpha_bar = self.model.alpha_bar
@@ -118,25 +120,26 @@ class DDPMSampler(DiffusionSampler):
         x = x_last if x_last is not None else torch.randn(shape, device=device)
 
         # Time steps to sample at $T - t', T - t' - 1, \dots, 1$
+        time_step_indices = self.time_step_indices[skip_steps:]
         time_steps = np.flip(self.time_steps)[skip_steps:]
-
         # Sampling loop
+        xs = [x]
         for step in monit.iterate('Sample', time_steps):
             # Time step $t$
-            ts = x.new_full((bs,), step, dtype=torch.long)
-
+            ti = x.new_full((bs,), time_step_indices[step], dtype=torch.long)
+            tv = x.new_full((bs,), step, dtype=torch.float64)
             # Sample $x_{t-1}$
-            x, pred_x0, e_t = self.p_sample(x, cond, ts, step,
+            x, pred_x0, e_t = self.p_sample(x, cond, ti, tv, step,
                                             repeat_noise=repeat_noise,
                                             temperature=temperature,
                                             uncond_scale=uncond_scale,
                                             uncond_cond=uncond_cond)
-
+            xs.append(x)
         # Return $x_0$
-        return x
+        return xs
 
     @torch.no_grad()
-    def p_sample(self, x: torch.Tensor, c: torch.Tensor, t: torch.Tensor, step: int,
+    def p_sample(self, x: torch.Tensor, c: torch.Tensor, ti: torch.Tensor, tv: torch.Tensor, step: int,
                  repeat_noise: bool = False,
                  temperature: float = 1.,
                  uncond_scale: float = 1., uncond_cond: Optional[torch.Tensor] = None):
@@ -153,9 +156,9 @@ class DDPMSampler(DiffusionSampler):
             $\epsilon_\theta(x_t, c) = s\epsilon_\text{cond}(x_t, c) + (s - 1)\epsilon_\text{cond}(x_t, c_u)$
         :param uncond_cond: is the conditional embedding for empty prompt $c_u$
         """
-
+        print("TIME", tv, ti, step)
         # Get $\epsilon_\theta$
-        e_t = self.get_eps(x, t, c,
+        e_t = self.get_eps(x, ti, c,
                            uncond_scale=uncond_scale,
                            uncond_cond=uncond_cond)
 

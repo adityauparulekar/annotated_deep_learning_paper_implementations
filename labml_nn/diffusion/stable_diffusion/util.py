@@ -35,7 +35,7 @@ def set_seed(seed: int):
     torch.cuda.manual_seed_all(seed)
 
 
-def load_model(path: Path = None) -> LatentDiffusion:
+def load_model(path: Path = None, step_size_eps=0.1) -> LatentDiffusion:
     """
     ### Load [`LatentDiffusion` model](latent_diffusion.html)
     """
@@ -81,7 +81,7 @@ def load_model(path: Path = None) -> LatentDiffusion:
                                 linear_end=0.0120,
                                 n_steps=1000,
                                 latent_scaling_factor=0.18215,
-
+                                step_size_eps=step_size_eps,
                                 autoencoder=autoencoder,
                                 clip_embedder=clip_text_embedder,
                                 unet_model=unet_model)
